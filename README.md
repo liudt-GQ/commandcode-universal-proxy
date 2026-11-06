@@ -291,6 +291,82 @@ Anthropic `budget_tokens` 映射规则：`>= 32000 → max`，`>= 16000 → high
 
 ---
 
+## 注意事项 / 常见问题
+
+### 1. `max_tokens` 上限是 200000
+
+`/alpha/generate` 网关硬性校验 `params.max_tokens <= 200000`，超过会返回：
+
+```
+400 BAD_REQUEST ... expected number to be <=200000
+```
+
+- 代理会自动把更大的值压到 `200000`。
+- 客户端（DSH / opencode 等）里的模型 `maxTokens` 建议直接写 `200000`。
+- 这不是上下文窗口；`contextWindow: 1000000` 是另一回事。
+
+### 2. 前置 WAF 可能拦截大请求
+
+如果请求被前置的「网站防火墙 / WAF」拦截，会返回 **HTML 403**：
+
+```html
+<title>网站防火墙</title>
+您的请求带有不合法参数，已被网站管理员设置拦截！
+```
+
+LLM 请求体很大，且包含系统提示、工具定义、代码，很容易触发 POST 内容规则。
+
+- DSH 会把这类 403 统一显示成「API 密钥无效」，容易误判；请直接看服务器或 DSH 会话日志里的原始响应。
+- 处理：在 WAF/面板里把 `/v1/chat/completions`、`/v1/messages`、`/v1/responses` 加入 URL 白名单，或关闭该站点的 POST 内容检查。
+- Cloudflare：WAF → Custom rules → `URI Path starts with "/v1/"` → Skip。
+- 也可以改用 Cloudflare Tunnel / Tailscale / WireGuard 直连 `127.0.0.1:3000`，绕开 WAF。
+
+### 3. 客户端 Key 与计划
+
+- 代理不配置 Key，必须由客户端携带。
+- 上游 403/400 可能是 Key 无效、模型不在当前计划、或余额/额度问题；代理会把上游错误原文带在 message 里。
+- 模型目录默认不过滤计划；能不能用最终由上游决定。可用 `CC_MODEL_FILTER` 收紧显示。
+
+### 4. Docker 更新
+
+服务器上的容器不会自动替换成新镜像：
+
+```bash
+docker compose pull
+docker compose up -d
+# 源码构建：git pull && docker compose up -d --build
+```
+
+`/health` 里出现 `"auth":"client-key"` 说明是新版“客户端 Key”行为。
+
+### 5. 无入站鉴权
+
+代理本身不校验入站身份；公网部署请在反向代理层加 Basic Auth / Cloudflare Access / IP 白名单 / 限流，避免被当作免费中转。
+
+### 6. Reasoning Effort
+
+只转发网关认识的值：`low` / `medium` / `high` / `xhigh` / `max`。其他值会被忽略（不发送 `reasoning_effort`）。
+
+### 7. DSH 配置示例
+
+在 `~/.dsh/settings.yaml` 的 `llm-pi-ai.providers` 下：
+
+```yaml
+commandcode:
+  displayName: commandcode
+  apiKeyEnv: COMMANDCODE_API_KEY
+  api: openai-completions
+  baseURL: https://你的域名/v1
+  models:
+    - id: deepseek/deepseek-v4.1-flash-fast
+      contextWindow: 1000000
+      maxTokens: 200000
+```
+
+DSH 不需要 `x-proxy-token`；`COMMANDCODE_API_KEY` 写在 `~/.dsh/.credentials.yaml` 的 `refs` 下即可。
+
+---
+
 ## 测试
 
 ```bash
