@@ -2,6 +2,8 @@ import { arch, platform } from 'node:os'
 import { isRecord, log, nonEmptyString } from './util.js'
 
 export const DEFAULT_MAX_TOKENS = 64000
+/** The gateway rejects `params.max_tokens` above this value. */
+export const GATEWAY_MAX_TOKENS = 200_000
 export const GATEWAY_EFFORTS = new Set(['low', 'medium', 'high', 'xhigh', 'max'])
 
 export class ProxyError extends Error {
@@ -15,12 +17,16 @@ export class ProxyError extends Error {
 }
 
 export function buildEnvelope(request) {
+  const requestedMax = Number(request.maxTokens ?? DEFAULT_MAX_TOKENS)
+  const maxTokens = Number.isFinite(requestedMax) && requestedMax > 0
+    ? Math.min(Math.floor(requestedMax), GATEWAY_MAX_TOKENS)
+    : DEFAULT_MAX_TOKENS
   const params = {
     model: request.model,
     messages: request.messages,
     tools: request.tools ?? [],
     system: request.system ?? '',
-    max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
+    max_tokens: maxTokens,
     stream: true,
   }
   if (request.temperature !== undefined) params.temperature = request.temperature

@@ -94,6 +94,16 @@ describe('commandcode-universal-proxy', () => {
     assert.equal(upstream.state.lastRequest.params.messages[0].content, 'hi')
   })
 
+  it('caps max_tokens at the gateway limit', async () => {
+    const { response } = await post('/v1/chat/completions', {
+      model: 'deepseek/deepseek-v4-flash',
+      messages: [{ role: 'user', content: 'hi' }],
+      max_tokens: 256_000,
+    })
+    assert.equal(response.status, 200)
+    assert.equal(upstream.state.lastRequest.params.max_tokens, 200_000)
+  })
+
   it('streams OpenAI chat completions as SSE', async () => {
     const { response, text } = await post('/v1/chat/completions', {
       model: 'deepseek/deepseek-v4-flash',

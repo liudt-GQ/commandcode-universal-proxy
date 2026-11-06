@@ -269,7 +269,7 @@ Anthropic `budget_tokens` 映射规则：`>= 32000 → max`，`>= 16000 → high
 | `CC_MODELS_URL` | 空 | 覆盖 Provider 模型列表地址 |
 | `CC_CATALOG_URL` | unpkg `models.md` | 官方 catalog 地址 |
 | `CC_DEFAULT_CONTEXT_WINDOW` | `262144` | catalog 没写上下文时的兜底 |
-| `CC_MAX_TOKENS` | `64000` | 请求未带输出上限时的默认值 |
+| `CC_MAX_TOKENS` | `64000` | 请求未带输出上限时的默认值；实际发送时强制不超过网关上限 `200000` |
 | `CC_MAX_BODY_MB` | `32` | 请求体上限 |
 | `CORS_ALLOW_ORIGIN` | 空 | 允许的浏览器源；留空不发送 CORS 头 |
 | `PROJECT_SLUG` | `commandcode-universal-proxy` | `x-project-slug` 请求头 |
