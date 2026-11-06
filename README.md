@@ -109,6 +109,32 @@ Internet → Caddy / nginx / Cloudflare Tunnel（TLS） → 127.0.0.1:3000
 - opencode：在 provider 的 `options.headers` 里加 `"x-proxy-token": "<token>"`
 - Claude Code / Codex：可让反向代理注入该头，或把 `PROXY_AUTH_TOKEN` 留空并仅监听回环地址（仅限本机）
 
+### 预构建镜像（GHCR）
+
+仓库内置 `.github/workflows/docker.yml`，推送到 `main`、打 `v*` tag 或手动触发时会自动构建多架构镜像：
+
+```
+ghcr.io/liudt-gq/commandcode-universal-proxy:latest
+ghcr.io/liudt-gq/commandcode-universal-proxy:main
+ghcr.io/liudt-gq/commandcode-universal-proxy:sha-<short>
+ghcr.io/liudt-gq/commandcode-universal-proxy:<version>   # 打 vX.Y.Z tag 时
+```
+
+直接运行：
+
+```bash
+docker run -d --name ccu-proxy \
+  -p 127.0.0.1:3000:3000 \
+  -e PROXY_AUTH_TOKEN="$(openssl rand -hex 16)" \
+  -e COMMANDCODE_API_KEY="user_xxxx" \
+  --read-only --tmpfs /tmp --cap-drop ALL \
+  --security-opt no-new-privileges:true --init \
+  --restart unless-stopped \
+  ghcr.io/liudt-gq/commandcode-universal-proxy:latest
+```
+
+> 首次发布后，GHCR 包默认可能是私有。到 GitHub 仓库 → Packages → 该镜像 → Package settings 把可见性改为 Public，匿名 `docker pull` 才可用。
+
 ### 第一次请求
 
 ```bash
