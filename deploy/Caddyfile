@@ -1,0 +1,28 @@
+# Command Code universal proxy behind Caddy.
+#
+# Replace cc.example.com with your domain. Caddy obtains TLS automatically.
+# The proxy itself stays bound to 127.0.0.1:3000; do not publish that port.
+#
+# Clients still need:
+#   Authorization: Bearer user_xxx
+#   x-proxy-token: <PROXY_AUTH_TOKEN>
+#
+# `flush_interval -1` disables response buffering so SSE streams arrive live.
+
+cc.example.com {
+	encode zstd gzip
+
+	reverse_proxy 127.0.0.1:3000 {
+		flush_interval -1
+		transport http {
+			read_timeout 0
+			write_timeout 0
+		}
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+	}
+}

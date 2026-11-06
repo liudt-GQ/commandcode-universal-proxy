@@ -1,0 +1,16 @@
+{
+  "port": 3000,
+  "host": "127.0.0.1",
+  "baseURL": "https://api.commandcode.ai",
+  "apiKey": "",
+  "version": "1.74.0",
+  "modelFilter": "none",
+  "modelRefreshMs": 300000,
+  "defaultContextWindow": 262144,
+  "maxBodyMB": 32,
+  "maxTokens": 64000,
+  "proxyAuthToken": "",
+  "corsAllowOrigin": "",
+  "projectSlug": "commandcode-universal-proxy",
+  "logLevel": "info"
+}

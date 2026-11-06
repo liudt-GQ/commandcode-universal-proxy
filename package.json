@@ -1,0 +1,31 @@
+{
+  "name": "commandcode-universal-proxy",
+  "version": "0.1.0",
+  "description": "A dependency-free universal proxy for Command Code's private /alpha/generate gateway. Works with any OpenAI Chat Completions, Anthropic Messages, or OpenAI Responses client.",
+  "type": "module",
+  "main": "src/server.js",
+  "bin": {
+    "commandcode-universal-proxy": "src/server.js"
+  },
+  "exports": {
+    ".": "./src/server.js"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "keywords": [
+    "commandcode",
+    "command-code",
+    "openai",
+    "anthropic",
+    "proxy",
+    "alpha-generate",
+    "llm"
+  ],
+  "license": "MIT"
+}

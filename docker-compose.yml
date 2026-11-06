@@ -1,0 +1,37 @@
+services:
+  proxy:
+    build: .
+    image: commandcode-universal-proxy:latest
+    container_name: commandcode-universal-proxy
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PROXY_PORT:-3000}:3000"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      PROXY_AUTH_TOKEN: "${PROXY_AUTH_TOKEN:?set PROXY_AUTH_TOKEN to a random string of at least 16 chars}"
+      COMMANDCODE_API_KEY: ${COMMANDCODE_API_KEY:-}
+      CC_BASE_URL: ${CC_BASE_URL:-https://api.commandcode.ai}
+      CC_VERSION: ${CC_VERSION:-1.74.0}
+      CC_MODEL_FILTER: ${CC_MODEL_FILTER:-none}
+      CC_MODEL_REFRESH_MS: ${CC_MODEL_REFRESH_MS:-300000}
+      CC_MODELS_URL: ${CC_MODELS_URL:-}
+      CC_CATALOG_URL: "${CC_CATALOG_URL:-https://unpkg.com/command-code@latest/dist/bundled/command-code-knowledge/reference/models.md}"
+      CC_MAX_TOKENS: ${CC_MAX_TOKENS:-64000}
+      CC_DEFAULT_CONTEXT_WINDOW: ${CC_DEFAULT_CONTEXT_WINDOW:-262144}
+      CC_MAX_BODY_MB: ${CC_MAX_BODY_MB:-32}
+      CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN:-}
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    init: true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
