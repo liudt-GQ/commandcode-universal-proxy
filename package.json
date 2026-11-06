@@ -1,7 +1,7 @@
 {
   "name": "commandcode-universal-proxy",
-  "version": "0.1.0",
-  "description": "A dependency-free universal proxy for Command Code's private /alpha/generate gateway. Works with any OpenAI Chat Completions, Anthropic Messages, or OpenAI Responses client.",
+  "version": "0.2.0",
+  "description": "A dependency-free universal proxy for Command Code's private /alpha/generate gateway. Client-key only; works with OpenAI Chat Completions, Anthropic Messages, and OpenAI Responses clients.",
   "type": "module",
   "main": "src/server.js",
   "bin": {

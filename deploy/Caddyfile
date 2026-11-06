@@ -3,9 +3,11 @@
 # Replace cc.example.com with your domain. Caddy obtains TLS automatically.
 # The proxy itself stays bound to 127.0.0.1:3000; do not publish that port.
 #
-# Clients still need:
+# Clients only need their own upstream key:
 #   Authorization: Bearer user_xxx
-#   x-proxy-token: <PROXY_AUTH_TOKEN>
+#
+# The proxy has no inbound token. If the endpoint is public, add access
+# control here (basic_auth / Cloudflare Access / IP allowlist / rate limit).
 #
 # `flush_interval -1` disables response buffering so SSE streams arrive live.
 

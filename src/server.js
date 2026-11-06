@@ -26,18 +26,11 @@ export function createProxyServer(config) {
       sendJson(res, 200, {
         status: 'ok',
         service: 'commandcode-universal-proxy',
+        auth: 'client-key',
         baseURL: config.baseURL,
         modelFilter: config.modelFilter || 'none',
       })
       return
-    }
-
-    if (config.proxyAuthToken) {
-      const provided = req.headers['x-proxy-token']
-      if (provided !== config.proxyAuthToken) {
-        sendJson(res, 401, { error: { message: 'missing or invalid x-proxy-token', type: 'auth_error' } })
-        return
-      }
     }
 
     if (req.method === 'GET' && path === '/v1/models') {
@@ -56,7 +49,7 @@ export function createProxyServer(config) {
     }
 
     try {
-      const apiKey = extractApiKey(req) || config.apiKey
+      const apiKey = extractApiKey(req)
       if (!apiKey) {
         sendJson(res, 401, { error: { message: 'missing Command Code API key (Authorization: Bearer user_xxx or x-api-key)', type: 'auth_error' } })
         return
@@ -116,9 +109,7 @@ function main() {
   server.listen(config.port, config.host, () => {
     log(`commandcode-universal-proxy listening on http://${config.host}:${config.port}`)
     log(`upstream: ${config.baseURL}  model filter: ${config.modelFilter || 'none (all plans)'}`)
-    if (!config.proxyAuthToken) {
-      log('inbound auth: disabled (clients must send their own Command Code API key)')
-    }
+    log('auth: each request must carry the client\'s own Command Code API key')
     log('endpoints: POST /v1/chat/completions, POST /v1/messages, POST /v1/responses, GET /v1/models')
   })
   for (const signal of ['SIGINT', 'SIGTERM']) {

@@ -15,14 +15,12 @@ before(async () => {
     baseURL: upstream.url,
     catalogURL: `${upstream.url}/catalog.md`,
     modelsURL: '',
-    apiKey: '',
     version: '1.74.0',
     modelRefreshMs: 60_000,
     modelFilter: '',
     defaultContextWindow: 262_144,
     maxBodyBytes: 10 * 1024 * 1024,
     maxTokens: 64_000,
-    proxyAuthToken: '',
     corsAllowOrigin: '',
     projectSlug: 'test',
   })
@@ -60,6 +58,17 @@ describe('commandcode-universal-proxy', () => {
     assert.equal(opus.min_plan, 'Max')
     assert.equal(opus.context_length, 1_000_000)
     assert.deepEqual(opus.reasoning_efforts, ['low', 'high'])
+  })
+
+  it('requires a client-supplied Command Code key', async () => {
+    const response = await fetch(`${baseURL}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', connection: 'close' },
+      body: JSON.stringify({ model: 'deepseek/deepseek-v4-flash', messages: [{ role: 'user', content: 'hi' }] }),
+    })
+    assert.equal(response.status, 401)
+    const payload = await response.json()
+    assert.match(payload.error.message, /missing Command Code API key/)
   })
 
   it('serves OpenAI chat completions non-stream', async () => {

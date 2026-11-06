@@ -9,10 +9,6 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: 3000
-      # Optional when COMMANDCODE_API_KEY is empty (clients bring their own key).
-      # Required if a server-side COMMANDCODE_API_KEY is set.
-      PROXY_AUTH_TOKEN: "${PROXY_AUTH_TOKEN:-}"
-      COMMANDCODE_API_KEY: ${COMMANDCODE_API_KEY:-}
       CC_BASE_URL: ${CC_BASE_URL:-https://api.commandcode.ai}
       CC_VERSION: ${CC_VERSION:-1.74.0}
       CC_MODEL_FILTER: ${CC_MODEL_FILTER:-none}

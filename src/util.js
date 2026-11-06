@@ -72,7 +72,7 @@ export function log(...args) {
 export function setCors(res, origin) {
   if (origin) {
     res.setHeader('access-control-allow-origin', origin)
-    res.setHeader('access-control-allow-headers', 'authorization, content-type, x-api-key, x-proxy-token, anthropic-version, anthropic-beta')
+    res.setHeader('access-control-allow-headers', 'authorization, content-type, x-api-key, anthropic-version, anthropic-beta')
     res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS')
     res.setHeader('vary', 'origin')
   }
