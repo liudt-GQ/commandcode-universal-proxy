@@ -50,10 +50,16 @@ COMMANDCODE_API_KEY=user_xxxx npm start
 
 ### Docker（推荐部署方式）
 
+两种鉴权模式，按是否在服务端配置 Key 选择：
+
+- **模式 A（客户端自带 Key）**：服务端不配置 `COMMANDCODE_API_KEY`，每个客户端必须带自己的 Command Code Key；`PROXY_AUTH_TOKEN` 可以留空。
+- **模式 B（服务端统一 Key）**：服务端配置了 `COMMANDCODE_API_KEY`；此时必须设置 `PROXY_AUTH_TOKEN`，否则拒绝启动，防止别人白嫖你的 Key。
+
 ```bash
 # 1. 生成配置
 cp .env.example .env
-# 编辑 .env：设置 PROXY_AUTH_TOKEN（至少 16 位随机串）和 COMMANDCODE_API_KEY
+# 模式 A：COMMANDCODE_API_KEY 与 PROXY_AUTH_TOKEN 都留空
+# 模式 B：设置 COMMANDCODE_API_KEY + PROXY_AUTH_TOKEN（至少 16 位随机串）
 
 # 2. 构建并后台启动
 docker compose up -d --build
@@ -66,11 +72,11 @@ docker compose logs -f
 `docker-compose.yml` 默认：
 
 - 只发布到 `127.0.0.1:${PROXY_PORT:-3000}`，不直接暴露公网
-- 强制要求 `PROXY_AUTH_TOKEN`
+- `PROXY_AUTH_TOKEN` 可选；只有设置了服务端 `COMMANDCODE_API_KEY` 时才强制
 - 只读根文件系统 + `tmpfs /tmp` + `cap_drop: ALL` + `no-new-privileges` + 非 root 用户
 - 内置 `/health` 健康检查与 `restart: unless-stopped`
 
-容器内监听 `0.0.0.0:3000`，所以 `PROXY_AUTH_TOKEN` 是必填项。客户端请求时除上游 Key 外还要带：
+模式 A 下客户端只需带自己的上游 Key；模式 B 下除上游 Key 外还要带 `x-proxy-token`：
 
 ```bash
 curl http://127.0.0.1:3000/v1/models \
@@ -81,10 +87,20 @@ curl http://127.0.0.1:3000/v1/models \
 
 ```bash
 docker build -t commandcode-universal-proxy .
+
+# 模式 A：服务端不配 Key，客户端自带
 docker run -d --name ccu-proxy \
   -p 127.0.0.1:3000:3000 \
-  -e PROXY_AUTH_TOKEN="$(openssl rand -hex 16)" \
+  --read-only --tmpfs /tmp --cap-drop ALL \
+  --security-opt no-new-privileges:true --init \
+  --restart unless-stopped \
+  commandcode-universal-proxy
+
+# 模式 B：服务端 Key + 入站 token
+docker run -d --name ccu-proxy \
+  -p 127.0.0.1:3000:3000 \
   -e COMMANDCODE_API_KEY="user_xxxx" \
+  -e PROXY_AUTH_TOKEN="$(openssl rand -hex 16)" \
   --read-only --tmpfs /tmp --cap-drop ALL \
   --security-opt no-new-privileges:true --init \
   --restart unless-stopped \
@@ -101,13 +117,14 @@ Internet → Caddy / nginx / Cloudflare Tunnel（TLS） → 127.0.0.1:3000
 
 - Caddy 示例见 [`deploy/Caddyfile`](deploy/Caddyfile)，已关闭 SSE 响应缓冲
 - 或使用 Cloudflare Tunnel / Tailscale / WireGuard，完全不开放公网入站端口
-- 公网场景务必保留 `PROXY_AUTH_TOKEN`，并让反代只访问本机端口
+- 模式 B 必须保留 `PROXY_AUTH_TOKEN`；模式 A 没有服务端 Key，但仍建议在反代层加限流/访问控制
 
-#### 客户端如何带 `x-proxy-token`
+#### 模式 B：客户端如何带 `x-proxy-token`
 
 - 能自定义请求头的客户端：直接加 `x-proxy-token: <token>`
 - opencode：在 provider 的 `options.headers` 里加 `"x-proxy-token": "<token>"`
-- Claude Code / Codex：可让反向代理注入该头，或把 `PROXY_AUTH_TOKEN` 留空并仅监听回环地址（仅限本机）
+- DSH：在 `~/.dsh/settings.yaml` 的 provider 下加 `headers: { x-proxy-token: "<token>" }`
+- Claude Code / Codex：可让反向代理注入该头，或改用模式 A
 
 ### 预构建镜像（GHCR）
 
@@ -283,7 +300,7 @@ Anthropic `budget_tokens` 映射规则：`>= 32000 → max`，`>= 16000 → high
 |---|---|---|
 | `COMMANDCODE_API_KEY` | 空 | 默认上游 Key；请求头里的 Key 优先 |
 | `PORT` | `3000` | 监听端口 |
-| `HOST` | `127.0.0.1` | 监听地址；非回环地址必须设置 `PROXY_AUTH_TOKEN` |
+| `HOST` | `127.0.0.1` | 监听地址；非回环地址在设置了服务端 Key 时必须同时设置 `PROXY_AUTH_TOKEN` |
 | `CC_BASE_URL` | `https://api.commandcode.ai` | 上游网关，`/alpha/generate` 自动追加 |
 | `CC_VERSION` | `1.74.0` | `x-command-code-version` 请求头 |
 | `CC_MODEL_FILTER` | `none` | `none` / `go` / `goat` / `pro` / `max` |
@@ -293,7 +310,7 @@ Anthropic `budget_tokens` 映射规则：`>= 32000 → max`，`>= 16000 → high
 | `CC_DEFAULT_CONTEXT_WINDOW` | `262144` | catalog 没写上下文时的兜底 |
 | `CC_MAX_TOKENS` | `64000` | 请求未带输出上限时的默认值 |
 | `CC_MAX_BODY_MB` | `32` | 请求体上限 |
-| `PROXY_AUTH_TOKEN` | 空 | 入站鉴权；设置后所有请求需带 `x-proxy-token` |
+| `PROXY_AUTH_TOKEN` | 空 | 入站鉴权；设置后所有请求需带 `x-proxy-token`。服务端无 Key 时可留空 |
 | `CORS_ALLOW_ORIGIN` | 空 | 允许的浏览器源；留空不发送 CORS 头 |
 | `PROJECT_SLUG` | `commandcode-universal-proxy` | `x-project-slug` 请求头 |
 | `CC_CONFIG` | 空 | 指定 `config.json` 路径 |
@@ -305,7 +322,8 @@ Anthropic `budget_tokens` 映射规则：`>= 32000 → max`，`>= 16000 → high
 ## 鉴权与安全
 
 - 默认只绑定 `127.0.0.1`。
-- 绑定非回环地址时，必须设置至少 16 位的 `PROXY_AUTH_TOKEN`，否则拒绝启动。
+- **服务端没有 `COMMANDCODE_API_KEY`**：`PROXY_AUTH_TOKEN` 可以留空；每个请求必须自带上游 Key，否则返回 401。
+- **服务端设置了 `COMMANDCODE_API_KEY`**：绑定非回环地址时必须设置至少 16 位的 `PROXY_AUTH_TOKEN`，否则拒绝启动。
 - 设置了 `PROXY_AUTH_TOKEN` 后，除 `/health` 外都要带 `x-proxy-token`。
 - 上游 Key 按请求从 `Authorization: Bearer`、`x-api-key`、`cc-api-key` 读取，缺失时回退到 `COMMANDCODE_API_KEY`。
 - 代理不落盘、不记录完整 Key。

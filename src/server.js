@@ -116,6 +116,9 @@ function main() {
   server.listen(config.port, config.host, () => {
     log(`commandcode-universal-proxy listening on http://${config.host}:${config.port}`)
     log(`upstream: ${config.baseURL}  model filter: ${config.modelFilter || 'none (all plans)'}`)
+    if (!config.proxyAuthToken) {
+      log('inbound auth: disabled (clients must send their own Command Code API key)')
+    }
     log('endpoints: POST /v1/chat/completions, POST /v1/messages, POST /v1/responses, GET /v1/models')
   })
   for (const signal of ['SIGINT', 'SIGTERM']) {

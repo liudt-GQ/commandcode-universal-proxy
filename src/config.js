@@ -73,8 +73,10 @@ export function loadConfig() {
   if (config.proxyAuthToken && config.proxyAuthToken.length < 16) {
     throw new Error('PROXY_AUTH_TOKEN must be at least 16 characters')
   }
-  if (!isLoopback(config.host) && !config.proxyAuthToken) {
-    throw new Error('refusing to bind a non-loopback address without PROXY_AUTH_TOKEN')
+  // No server-side key means every request must bring its own upstream key,
+  // so an open inbound endpoint cannot spend the operator's credentials.
+  if (!isLoopback(config.host) && !config.proxyAuthToken && config.apiKey) {
+    throw new Error('refusing to expose a server-side COMMANDCODE_API_KEY without PROXY_AUTH_TOKEN; set PROXY_AUTH_TOKEN or remove the server key')
   }
   return config
 }
