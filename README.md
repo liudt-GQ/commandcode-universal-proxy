@@ -133,7 +133,7 @@ docker run -d --name ccu-proxy \
   ghcr.io/liudt-gq/commandcode-universal-proxy:latest
 ```
 
-> 首次发布后，GHCR 包默认可能是私有。到 GitHub 仓库 → Packages → 该镜像 → Package settings 把可见性改为 Public，匿名 `docker pull` 才可用。
+> 本仓库的 GHCR 包已设为 Public。如果你 fork 后用自己的名字发布，首次发布后仍需在 Package settings 把可见性改为 Public，匿名 `docker pull` 才可用。
 
 ### 第一次请求
 
